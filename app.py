@@ -40,10 +40,10 @@ IS_PRODUCTION = (
 )
 
 # Security: Load secret key from environment variable (fail immediately if missing in production)
-flask_secret = os.getenv("FLASK_SECRET_KEY")
+flask_secret = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY")
 if not flask_secret:
     if IS_PRODUCTION:
-        raise RuntimeError("CRITICAL: FLASK_SECRET_KEY environment variable MUST be set in production!")
+        raise RuntimeError("CRITICAL: FLASK_SECRET_KEY or SECRET_KEY environment variable MUST be set in production!")
     flask_secret = "dev-fallback-secret-key-change-in-production"
 app.secret_key = flask_secret
 

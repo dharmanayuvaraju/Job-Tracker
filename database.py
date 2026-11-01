@@ -72,9 +72,25 @@ def get_connection():
     return conn
 
 
+_schema_initialized = False
+
+def ensure_tables():
+    """Ensures tables exist upon first database connection."""
+    global _schema_initialized
+    if _schema_initialized:
+        return
+    try:
+        init_db()
+        _schema_initialized = True
+    except Exception as e:
+        # Avoid crashing app if table creation cannot be performed
+        pass
+
+
 def get_db():
     """Returns the database connection for the current Flask request context."""
     if "db" not in g:
+        ensure_tables()
         g.db = get_connection()
     return g.db
 
