@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-titles">
+            <h1>Welcome back, {{ user.username }}! 👋</h1>
+            <p class="text-muted">Here is an overview of your job search progress and insights.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('application_add') }}" class="btn btn-primary">+ Add Application</a>
+            <a href="{{ url_for('applications_list') }}" class="btn btn-outline">View List</a>
+            <a href="{{ url_for('applications_export') }}" class="btn btn-export">📥 Export CSV</a>
+        </div>
+    </div>
+
+    <!-- Stats Grid: Metric Counters & Success Rate -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Total Applications</span>
+            <span class="stat-number">{{ counts.Total }}</span>
+        </div>
+        <div class="stat-card stat-applied">
+            <span class="stat-label">Applied</span>
+            <span class="stat-number">{{ counts.Applied }}</span>
+        </div>
+        <div class="stat-card stat-interview">
+            <span class="stat-label">Interviewing</span>
+            <span class="stat-number">{{ counts.Interview }}</span>
+        </div>
+        <div class="stat-card stat-offer">
+            <span class="stat-label">Offers</span>
+            <span class="stat-number">{{ counts.Offer }}</span>
+        </div>
+        <div class="stat-card stat-rejected">
+            <span class="stat-label">Rejected</span>
+            <span class="stat-number">{{ counts.Rejected }}</span>
+        </div>
+        <div class="stat-card stat-rate">
+            <span class="stat-label">Success Rate</span>
+            <span id="successRateValue" class="stat-number">
+                {% if counts.Total > 0 %}
+                    {{ ((counts.Interview + counts.Offer) / counts.Total * 100) | round(1) }}%
+                {% else %}
+                    0.0%
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Friendly "No Data Yet" Message (shown when total == 0) -->
+    <div id="noDataSection" class="card empty-state {% if counts.Total > 0 %}hidden{% endif %}">
+        <h3>📊 No application data yet!</h3>
+        <p class="text-muted">Track your first job application to automatically generate weekly activity trends and status breakdown charts.</p>
+        <div class="empty-state-actions">
+            <a href="{{ url_for('application_add') }}" class="btn btn-primary">+ Add Your First Application</a>
+        </div>
+    </div>
+
+    <!-- Charts Section (rendered via Chart.js and /api/stats) -->
+    <div id="chartsSection" class="charts-grid {% if counts.Total == 0 %}hidden{% endif %}">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>📅 Applications per Week (Last 8 Weeks)</h3>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>🍩 Application Status Breakdown</h3>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Details -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>👤 Your Profile</h3>
+            <table class="profile-table">
+                <tr>
+                    <th>Username:</th>
+                    <td>{{ user.username }}</td>
+                </tr>
+                <tr>
+                    <th>Email:</th>
+                    <td>{{ user.email }}</td>
+                </tr>
+                <tr>
+                    <th>Member Since:</th>
+                    <td>{{ user.created_at }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="card card-highlight">
+            <h3>💡 Success Rate Insight</h3>
+            <p>Your success rate measures the percentage of applications that progressed to an <strong>Interview</strong> or resulted in an <strong>Offer</strong>.</p>
+            <p class="next-step-hint">Formula: (Interview + Offer) / Total Applications &times; 100</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js served locally (no CDN) and dashboard script conforming to strict CSP -->
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

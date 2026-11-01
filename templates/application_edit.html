@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Application - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <div class="form-header">
+        <h2>Edit Application</h2>
+        <p class="text-muted">Update your application details for <strong>{{ application.company }}</strong>.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('application_edit', id=application.id) }}" class="app-form" novalidate>
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-row">
+            <div class="form-group flex-1">
+                <label for="company">Company Name <span class="required">*</span></label>
+                <input 
+                    type="text" 
+                    id="company" 
+                    name="company" 
+                    maxlength="100" 
+                    value="{{ form_data.company if form_data else application.company }}" 
+                    required
+                >
+            </div>
+
+            <div class="form-group flex-1">
+                <label for="role">Role / Job Title <span class="required">*</span></label>
+                <input 
+                    type="text" 
+                    id="role" 
+                    name="role" 
+                    maxlength="100" 
+                    value="{{ form_data.role if form_data else application.role }}" 
+                    required
+                >
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group flex-1">
+                <label for="status">Status <span class="required">*</span></label>
+                <select id="status" name="status" required>
+                    {% set current_status = form_data.status if form_data else application.status %}
+                    {% for s in valid_statuses %}
+                        <option value="{{ s }}" {% if current_status == s %}selected{% endif %}>
+                            {{ s }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group flex-1">
+                <label for="applied_date">Applied Date <span class="required">*</span></label>
+                <input 
+                    type="date" 
+                    id="applied_date" 
+                    name="applied_date" 
+                    value="{{ form_data.applied_date if form_data else application.applied_date }}" 
+                    required
+                >
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="job_link">Job Posting URL (Optional)</label>
+            <input 
+                type="url" 
+                id="job_link" 
+                name="job_link" 
+                maxlength="500" 
+                value="{{ (form_data.job_link if form_data else application.job_link) or '' }}" 
+                placeholder="https://company.com/careers/job-123"
+            >
+            <small class="form-help">Must start with http:// or https://</small>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea 
+                id="notes" 
+                name="notes" 
+                rows="4" 
+                maxlength="2000"
+            >{{ (form_data.notes if form_data else application.notes) or '' }}</textarea>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="btn btn-primary">Update Application</button>
+            <a href="{{ url_for('applications_list') }}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

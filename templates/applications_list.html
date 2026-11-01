@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}My Applications - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>My Job Applications</h2>
+        <p class="text-muted">Track and manage your active and past job applications.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('applications_export') }}" class="btn btn-export">📥 Export CSV</a>
+        <a href="{{ url_for('application_add') }}" class="btn btn-primary">+ Add New Application</a>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="filter-card">
+    <form method="GET" action="{{ url_for('applications_list') }}" class="filter-form">
+        <div class="filter-group">
+            <label for="q">Search Company</label>
+            <input 
+                type="text" 
+                id="q" 
+                name="q" 
+                placeholder="e.g. Google, Stripe..." 
+                value="{{ q or '' }}"
+            >
+        </div>
+
+        <div class="filter-group">
+            <label for="status">Filter by Status</label>
+            <select id="status" name="status">
+                <option value="">All Statuses</option>
+                {% for s in valid_statuses %}
+                    <option value="{{ s }}" {% if selected_status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            {% if q or selected_status %}
+                <a href="{{ url_for('applications_list') }}" class="btn btn-outline">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Applications Table -->
+<div class="table-container card">
+    {% if applications %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Applied Date</th>
+                    <th>Link</th>
+                    <th>Notes</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                    <tr>
+                        <td><strong>{{ app.company }}</strong></td>
+                        <td>{{ app.role }}</td>
+                        <td>
+                            <span class="badge badge-{{ app.status | lower }}">{{ app.status }}</span>
+                        </td>
+                        <td>{{ app.applied_date }}</td>
+                        <td>
+                            {% if app.job_link %}
+                                <a href="{{ app.job_link }}" target="_blank" rel="noopener noreferrer" class="link-external">
+                                    View Posting ↗
+                                </a>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="notes-cell">
+                            {% if app.notes %}
+                                <span title="{{ app.notes }}">{{ app.notes }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="actions-cell text-right">
+                            <a href="{{ url_for('application_edit', id=app.id) }}" class="btn btn-sm btn-outline">Edit</a>
+                            
+                            <!-- Delete form with CSRF token and confirmation dialog -->
+                            <form method="POST" action="{{ url_for('application_delete', id=app.id) }}" class="inline-form" onsubmit="return confirm('Are you sure you want to delete your application for {{ app.company }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <p>No job applications found.</p>
+            {% if q or selected_status %}
+                <p class="text-muted">Try clearing your search or filter criteria.</p>
+                <a href="{{ url_for('applications_list') }}" class="btn btn-sm btn-outline">Clear Filters</a>
+            {% else %}
+                <p class="text-muted">Start tracking your search by adding your first job application!</p>
+                <a href="{{ url_for('application_add') }}" class="btn btn-sm btn-primary">+ Add Application</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Match Score - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Resume &bull; Job Description Matcher</h2>
+        <p class="text-muted">Compare your resume against a job description using weighted keyword analysis.</p>
+    </div>
+</div>
+
+{% if result %}
+    <!-- Match Results Summary -->
+    <div class="match-results-container">
+        <div class="match-score-card">
+            <div class="score-circle-wrapper">
+                <div class="score-circle score-{% if result.score >= 70 %}high{% elif result.score >= 40 %}medium{% else %}low{% endif %}">
+                    <span class="score-number">{{ result.score }}%</span>
+                    <span class="score-label">Match Score</span>
+                </div>
+            </div>
+            <div class="score-details">
+                <h3>Analysis Overview</h3>
+                <p class="text-muted">
+                    Your resume matched <strong>{{ result.matched_count }}</strong> out of <strong>{{ result.total_job_keywords }}</strong> unique keywords found in this job description.
+                </p>
+                <div class="score-meta">
+                    <span class="badge badge-success">&#10003; {{ result.matched_count }} Matched</span>
+                    <span class="badge badge-danger">&times; {{ result.missing_count }} Missing</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="keywords-grid">
+            <!-- Top 10 Missing Keywords -->
+            <div class="card">
+                <h3>⚠️ Top Missing Keywords</h3>
+                <p class="text-muted">Consider adding these high-priority keywords to your resume if you have experience with them:</p>
+                {% if result.top_missing %}
+                    <div class="keyword-cloud">
+                        {% for item in result.top_missing %}
+                            <span class="chip chip-missing {% if item.is_tech %}chip-tech{% endif %}">
+                                {{ item.word }}
+                                {% if item.is_tech %}<small class="tech-tag">TECH</small>{% endif %}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Great job! No major keywords appear to be missing.</p>
+                {% endif %}
+            </div>
+
+            <!-- Matched Keywords -->
+            <div class="card">
+                <h3>✅ Matched Keywords</h3>
+                <p class="text-muted">Keywords from the job description successfully identified in your resume:</p>
+                {% if result.matched_keywords %}
+                    <div class="keyword-cloud">
+                        {% for item in result.matched_keywords %}
+                            <span class="chip chip-matched {% if item.is_tech %}chip-tech{% endif %}">
+                                {{ item.word }}
+                                {% if item.is_tech %}<small class="tech-tag">TECH</small>{% endif %}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No matching keywords found between resume and job description.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Resume & Job Input Form -->
+<div class="card form-card-wide">
+    <div class="card-header">
+        <h3>Analyze Resume Keywords</h3>
+        <p class="text-muted">Maximum 10,000 characters per field. All processing happens on the server without external AI APIs.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('resume_match') }}" class="match-form">
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="match-columns">
+            <div class="form-group flex-1">
+                <label for="resume_text">Your Resume Text <span class="required">*</span></label>
+                <textarea 
+                    id="resume_text" 
+                    name="resume_text" 
+                    rows="12" 
+                    maxlength="10000" 
+                    placeholder="Paste the plain text of your resume here (experience, skills, projects, education)..." 
+                    required
+                >{{ resume_text or '' }}</textarea>
+                <small class="form-help">Tip: Copy text from your PDF or Word document.</small>
+            </div>
+
+            <div class="form-group flex-1">
+                <label for="job_description">Job Description <span class="required">*</span></label>
+                <textarea 
+                    id="job_description" 
+                    name="job_description" 
+                    rows="12" 
+                    maxlength="10000" 
+                    placeholder="Paste the job posting requirements and responsibilities here..." 
+                    required
+                >{{ job_description or '' }}</textarea>
+                <small class="form-help">Tip: Copy the responsibilities and requirements section.</small>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="btn btn-primary">Calculate Match Score</button>
+            <a href="{{ url_for('jobs_board') }}" class="btn btn-outline">Back to Jobs Board</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

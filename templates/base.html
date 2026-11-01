@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Job Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">💼 Job Tracker</a>
+            <nav class="nav-links">
+                {% if session.user_id %}
+                    <span class="nav-user">Hello, <strong>{{ session.username }}</strong></span>
+                    <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('applications_list') }}" class="nav-link">Applications</a>
+                    <a href="{{ url_for('jobs_board') }}" class="nav-link">Browse Jobs</a>
+                    <a href="{{ url_for('resume_match') }}" class="nav-link">Resume Match</a>
+                    <a href="{{ url_for('application_add') }}" class="nav-btn">+ Add Job</a>
+                    <a href="{{ url_for('logout') }}" class="nav-btn-outline">Log Out</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">Log In</a>
+                    <a href="{{ url_for('signup') }}" class="nav-btn">Sign Up</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Flash messages for user feedback (success, errors, warnings) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrapper">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Job Tracker. All rights reserved.</p>
+    </footer>
+
+    <!-- Scripts Block for page-specific JS files -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

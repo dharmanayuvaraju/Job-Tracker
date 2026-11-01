@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Jobs - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Available Job Opportunities</h2>
+        <p class="text-muted">Aggregated from Greenhouse, Lever, and Adzuna.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('resume_match') }}" class="btn btn-outline">⚡ Match Resume</a>
+    </div>
+</div>
+
+<!-- Search and Filter Form -->
+<div class="filter-card">
+    <form method="GET" action="{{ url_for('jobs_board') }}" class="filter-form">
+        <div class="filter-group">
+            <label for="q">Keyword or Company</label>
+            <input 
+                type="text" 
+                id="q" 
+                name="q" 
+                maxlength="50" 
+                placeholder="e.g. Python, Engineer, Gitlab..." 
+                value="{{ q or '' }}"
+            >
+        </div>
+
+        <div class="filter-group">
+            <label for="location">Location</label>
+            <input 
+                type="text" 
+                id="location" 
+                name="location" 
+                maxlength="50" 
+                placeholder="e.g. Remote, India, London..." 
+                value="{{ location or '' }}"
+            >
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            {% if q or location %}
+                <a href="{{ url_for('jobs_board') }}" class="btn btn-outline">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Jobs Results Table -->
+<div class="table-container card">
+    {% if jobs %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Source</th>
+                    <th>Posted Date</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                    <tr>
+                        <td>
+                            <strong>{{ job.title }}</strong>
+                            <div class="table-subtext">
+                                <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="link-external">
+                                    View Posting ↗
+                                </a>
+                            </div>
+                        </td>
+                        <td>{{ job.company }}</td>
+                        <td>{{ job.location or 'Remote' }}</td>
+                        <td>
+                            <span class="badge badge-source badge-{{ job.source | lower }}">{{ job.source }}</span>
+                        </td>
+                        <td>{{ job.posted_date or 'Recent' }}</td>
+                        <td class="actions-cell text-right">
+                            <!-- Save to my applications form with CSRF token -->
+                            <form method="POST" action="{{ url_for('job_save', id=job.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    + Save to Applications
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls -->
+        {% if total_pages > 1 %}
+            <div class="pagination-wrapper">
+                <div class="pagination-info">
+                    Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong> ({{ total_jobs }} total jobs)
+                </div>
+                <div class="pagination-links">
+                    {% if page > 1 %}
+                        <a href="{{ url_for('jobs_board', page=page-1, q=q, location=location) }}" class="btn btn-sm btn-outline">&larr; Previous</a>
+                    {% endif %}
+
+                    {% if page < total_pages %}
+                        <a href="{{ url_for('jobs_board', page=page+1, q=q, location=location) }}" class="btn btn-sm btn-outline">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <p>No job postings found matching your search.</p>
+            {% if q or location %}
+                <p class="text-muted">Try using broader search terms or reset the filters.</p>
+                <div class="empty-state-actions">
+                    <a href="{{ url_for('jobs_board') }}" class="btn btn-sm btn-outline">Clear Search</a>
+                </div>
+            {% else %}
+                <p class="text-muted">The jobs database is currently empty. Run the fetcher script to retrieve fresh jobs:</p>
+                <div class="empty-state-actions">
+                    <code>python fetch_jobs.py</code>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

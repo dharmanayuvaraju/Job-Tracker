@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found (404) - Job Tracker{% endblock %}
+
+{% block content %}
+<div class="card empty-state error-card">
+    <div class="error-icon">🔍</div>
+    <h2>404 - Page Not Found</h2>
+    <p class="text-muted error-text">
+        The page or application you requested could not be found, or you do not have permission to view it.
+    </p>
+    <div class="error-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Return to Dashboard</a>
+        <a href="{{ url_for('applications_list') }}" class="btn btn-outline">My Applications</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "greenhouse": [
+    "canonical",
+    "gitlab",
+    "cloudflare"
+  ],
+  "lever": [
+    "spotify",
+    "postman"
+  ]
+}
+
