@@ -10,6 +10,16 @@ def test_signup_validation_short_password(client, auth):
     res = auth.signup("shortpass", "short@example.com", "12345", "12345")
     assert b"Password must be at least 8 characters long." in res.data
 
+def test_signup_validation_oversized_inputs(client, auth):
+    """Test rejection of usernames > 50 chars or passwords > 128 chars."""
+    # Oversized username
+    res_user = auth.signup("a" * 51, "valid@example.com", "Password123!", "Password123!")
+    assert b"Username must be 50 characters or fewer." in res_user.data
+
+    # Oversized password
+    res_pass = auth.signup("validuser", "valid@example.com", "P" * 129, "P" * 129)
+    assert b"Password must be 128 characters or fewer." in res_pass.data
+
 def test_signup_validation_bad_email(client, auth):
     """Test rejection of malformed email addresses."""
     res = auth.signup("bademail", "invalid-email-format", "SecurePass123!", "SecurePass123!")

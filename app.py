@@ -31,10 +31,11 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Production environment detection
+# Production environment detection (supports Render, Vercel, and custom cloud hosts)
 IS_PRODUCTION = (
     os.getenv("FLASK_ENV") == "production"
     or os.getenv("RENDER") is not None
+    or os.getenv("VERCEL") is not None
     or os.getenv("ENVIRONMENT") == "production"
 )
 
@@ -46,9 +47,9 @@ if not flask_secret:
     flask_secret = "dev-fallback-secret-key-change-in-production"
 app.secret_key = flask_secret
 
-# Production Cookie Security (Secure cookies only over real HTTPS)
+# Production Cookie Security (Secure cookies over real HTTPS in production)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SECURE"] = False if not IS_PRODUCTION else True
+app.config["SESSION_COOKIE_SECURE"] = bool(IS_PRODUCTION)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # Security: Enable CSRF protection for all POST requests
@@ -80,7 +81,7 @@ STOPWORDS = {
     "should", "so", "some", "such", "than", "that", "the", "their", "theirs", "them", "themselves",
     "then", "there", "these", "they", "this", "those", "through", "to", "too", "under", "until",
     "up", "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom",
-    "why", "will", "with", "would", "you", "your", "yours", "yourself", "yourselves", "will",
+    "why", "will", "with", "would", "you", "your", "yours", "yourself", "yourselves",
     "job", "role", "work", "team", "experience", "years", "candidate", "responsibilities"
 }
 
@@ -99,14 +100,14 @@ TECH_SKILLS = {
 def add_security_headers(response):
     """Adds HTTP security headers to protect against XSS, clickjacking, and MIME sniffing."""
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self';"
     )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     return response
 
 
-# Custom Error Handlers (No stack traces in production)
+# Custom Error Handlers (Suppresses raw stack traces in production)
 @app.errorhandler(404)
 def page_not_found(e):
     """Renders custom 404 page without exposing internal errors."""
@@ -243,22 +244,38 @@ def index():
 @app.route("/signup", methods=["GET", "POST"])
 @limiter.limit("10 per minute", methods=["POST"])
 def signup():
-    """Handle new user registration with rate limiting."""
+    """Handle new user registration with rate limiting and strict bounds."""
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
+        # Validation: Required fields
         if not username or not email or not password:
             flash("All fields are required.", "danger")
             return render_template("signup.html", username=username, email=email)
 
+        # Validation: Upper bounds to prevent memory/hash compute DoS
+        if len(username) > 50:
+            flash("Username must be 50 characters or fewer.", "danger")
+            return render_template("signup.html", username=username, email=email)
+
+        if len(email) > 120:
+            flash("Email address is too long.", "danger")
+            return render_template("signup.html", username=username, email=email)
+
+        if len(password) > 128:
+            flash("Password must be 128 characters or fewer.", "danger")
+            return render_template("signup.html", username=username, email=email)
+
+        # Validation: Email format check
         email_pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
         if not re.match(email_pattern, email):
             flash("Please enter a valid email address.", "danger")
             return render_template("signup.html", username=username, email=email)
 
+        # Validation: Password minimum length
         if len(password) < 8:
             flash("Password must be at least 8 characters long.", "danger")
             return render_template("signup.html", username=username, email=email)
@@ -293,10 +310,15 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per minute", methods=["POST"])
 def login():
-    """Handle user login with rate limiting."""
+    """Handle user login with rate limiting and length bounds."""
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+
+        # Reject excessively long credentials immediately
+        if len(email) > 120 or len(password) > 128:
+            flash("Invalid email or password.", "danger")
+            return render_template("login.html", email=email[:120])
 
         db = get_db()
         user = db.execute(
@@ -308,6 +330,7 @@ def login():
             flash("Invalid email or password.", "danger")
             return render_template("login.html", email=email)
 
+        # Regenerate session state to prevent session fixation
         session.clear()
         session["user_id"] = user["id"]
         session["username"] = user["username"]
@@ -318,7 +341,7 @@ def login():
     return render_template("login.html")
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     """Log the current user out by clearing the session."""
     session.clear()
@@ -425,8 +448,8 @@ def applications_list():
     db = get_db()
     user_id = session["user_id"]
 
-    q = request.args.get("q", "").strip()
-    selected_status = request.args.get("status", "").strip()
+    q = request.args.get("q", "").strip()[:50]
+    selected_status = request.args.get("status", "").strip()[:20]
 
     query = "SELECT * FROM applications WHERE user_id = ?"
     params = [user_id]
@@ -798,4 +821,6 @@ def init_db_command():
 # Ensure database exists when running directly
 if __name__ == "__main__":
     init_db()
-    app.run(debug=not IS_PRODUCTION)
+    # Explicitly require FLASK_DEBUG=1 for debug mode, never enabled by default in production
+    debug_mode = os.getenv("FLASK_DEBUG", "0") == "1" and not IS_PRODUCTION
+    app.run(debug=debug_mode)
